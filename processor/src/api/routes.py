@@ -1,4 +1,5 @@
 from services.task_manager import TaskManager
+from services.audio_processor import AudioProcessor
 from utils.validators import validate_audio_file
 from flask import Blueprint, jsonify, request, current_app
 from werkzeug.utils import secure_filename
@@ -10,6 +11,7 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 # Init services
 task_manager = TaskManager()
+audio_processor = AudioProcessor()
 
 @api_bp.route('/upload', methods=['POST'])
 def upload_file():
@@ -72,11 +74,13 @@ def process_audio(job_id):
         task_manager.update_job_status(job_id, 'processing')
 
         # TODO: Process audio async here
+        results = audio_processor.process_audio(job_id)
 
         return jsonify({
             'job_id': job_id,
             'message': 'Audio processing started',
-            'status': 'processing'
+            'status': 'processing',
+            'chords': results['chords']
         }), 202
 
     except Exception as e:

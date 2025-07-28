@@ -4,11 +4,25 @@ import threading
 from datetime import datetime
 
 class TaskManager:
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super(TaskManager, cls).__new__(cls)
+                    cls._instance._initalized = False
+        return cls._instance
+
     def __init__(self):
+        if self._initalized:
+            return
         self.jobs = {}
-        self.jobs_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'jobs.json')
         self.lock = threading.Lock()
+        self.jobs_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'jobs.json')
         self._load_jobs()
+        self._initalized = True
 
     def _load_jobs(self):
         try:

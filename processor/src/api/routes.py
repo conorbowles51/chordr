@@ -1,3 +1,4 @@
+from services.task_manager import TaskManager
 from utils.validators import validate_audio_file
 from flask import Blueprint, jsonify, request, current_app
 from werkzeug.utils import secure_filename
@@ -6,6 +7,9 @@ import uuid
 import os
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
+
+# Init services
+task_manager = TaskManager()
 
 @api_bp.route('/upload', methods=['POST'])
 def upload_file():
@@ -41,7 +45,8 @@ def upload_file():
             'file_size': os.path.getsize(filepath)
         }    
 
-        # TODO: Give job to task manager
+        # save job
+        task_manager.create_job(job_id, job_data)
         
         return jsonify({
             'job_id': job_id,

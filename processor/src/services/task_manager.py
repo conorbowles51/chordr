@@ -1,0 +1,36 @@
+import json
+import os
+import threading
+
+class TaskManager:
+    def __init__(self):
+        self.jobs = {}
+        self.jobs_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'jobs.json')
+        self.lock = threading.Lock()
+        self._load_jobs()
+
+    def _load_jobs(self):
+        try:
+            if os.path.exists(self.jobs_file):
+                with open(self.jobs_file, 'r') as f:
+                    self.jobs = json.load(f)
+            else:
+                self.jobs = {}
+        except Exception as e:
+            print(f"Error loading jobs: {str(e)}")
+            self.jobs = {}
+
+    def _save_jobs(self):
+        try:
+            with open(self.jobs_file, 'w') as f:
+                json.dump(self.jobs, f, indent=4)
+        except Exception as e:
+            print(f"Error saving jobs: {str(e)}")
+
+    def create_job(self, job_id, job_data):
+        with self.lock:
+            self.jobs[job_id] = job_data
+            self._save_jobs()
+
+    def get_job(self, job_id):
+        return self.jobs.get(job_id)

@@ -12,8 +12,12 @@ class AudioProcessor:
         self.task_manager = TaskManager()
         self.chord_detector = ChordDetector()
         self.lyric_extractor = LyricExtractor();
+    
+    def process_audio_async(self, job_id, app):
+        with app.app_context():
+            self._process_audio(job_id)
 
-    def process_audio(self, job_id):
+    def _process_audio(self, job_id):
         try:
             results = {
                 'job_id': job_id,
@@ -74,17 +78,19 @@ class AudioProcessor:
             with open(results_file, 'w') as f:
                 json.dump(results, f, indent=4)
 
+            self.task_manager.update_job_status(job_id, 'completed')
             
             print(f"Processing completed for job {job_id}")
             return results
         except Exception as e:
+            self.task_manager.update_job_status(job_id, 'failed')
+
             error_msg = str(e)
             print(f"Error processing audio: {error_msg}")
             
             # Provide more specific error messages for common issues
             if "ffmpeg" in error_msg.lower():
-                detailed_error = ("FFmpeg not found. Please install FFmpeg for audio format support. "
-                               "See FFMPEG_SETUP.md for installation instructions.")
+                detailed_error = "FFmpeg not found. Please install FFmpeg for audio format support."
             elif "could not open" in error_msg.lower() or "invalid" in error_msg.lower():
                 detailed_error = ("Invalid or corrupted audio file. Please ensure the file is a valid MP3 "
                                "and not corrupted. Try with a different audio file.")
@@ -95,5 +101,5 @@ class AudioProcessor:
             
             results['status'] = 'failed'
             results['error'] = detailed_error
-            results['processing_completed'] = datetime.utcnow().isoformat()
+            results['processing_completed'] = datetime.now().isoformat()
             return results

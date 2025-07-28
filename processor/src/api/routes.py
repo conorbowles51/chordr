@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import uuid
 import os
+import threading
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -73,14 +74,15 @@ def process_audio(job_id):
         
         task_manager.update_job_status(job_id, 'processing')
 
-        # TODO: Process audio async here
-        results = audio_processor.process_audio(job_id)
+        # Pass the current app to the background thread
+        thread = threading.Thread(target=audio_processor.process_audio_async, args=(job_id, current_app._get_current_object()))
+        thread.daemon = True
+        thread.start()
 
         return jsonify({
             'job_id': job_id,
-            'message': 'Audio processing started',
-            'status': 'processing',
-            'chords': results['chords']
+            'status': job_data['status'],
+            'message': 'Audio processing started'
         }), 202
 
     except Exception as e:
@@ -89,9 +91,22 @@ def process_audio(job_id):
 
 @api_bp.route('/status/<job_id>', methods=['GET'])
 def get_status(job_id):
-    return jsonify({
-        "message": f"status {job_id}"
-    })
+    try:
+        job_data = task_manager.get_job(job_id)
+        if not job_data:
+            return jsonify({'error': 'Job not found'}), 404
+        
+        # Create response with current job status
+        response_data = {
+            'job_id': job_id,
+            'status': job_data['status'],
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        current_app.logger.error(f"Status check error: {str(e)}")
+        return jsonify({'error': 'Failed to get status'}), 500
 
 @api_bp.route('/download/<job_id>', methods=['GET'])
 def get_results(job_id):

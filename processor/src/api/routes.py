@@ -1,7 +1,7 @@
 from services.task_manager import TaskManager
 from services.audio_processor import AudioProcessor
 from utils.validators import validate_audio_file
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, send_file
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import uuid
@@ -90,7 +90,7 @@ def process_audio(job_id):
         return jsonify({'error': 'Processing failed to start'}), 500
 
 @api_bp.route('/status/<job_id>', methods=['GET'])
-def get_status(job_id):
+def get_job_status(job_id):
     try:
         job_data = task_manager.get_job(job_id)
         if not job_data:
@@ -109,7 +109,23 @@ def get_status(job_id):
         return jsonify({'error': 'Failed to get status'}), 500
 
 @api_bp.route('/download/<job_id>', methods=['GET'])
-def get_results(job_id):
-    return jsonify({
-        "message": f"download {job_id}"
-    })
+def download_results(job_id):
+    try:
+        job_data = task_manager.get_job(job_id)
+        if not job_data:
+            return jsonify({ 'error': 'Job not found' }), 404
+        
+        if job_data['status'] != 'completed':
+            return jsonify({ 'error': 'Job not completed' })
+        
+        filename = f"{job_id}_results.json"
+        filepath = os.path.join(current_app.config['OUTPUT_FOLDER'], filename)
+
+        if not os.path.exists(filepath):
+            return jsonify({ 'error': 'File not found' }), 404
+        
+        return send_file(filepath, as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        current_app.logger.error(f"Download error: {str(e)}")
+        return jsonify({'error': 'Download failed'}), 500

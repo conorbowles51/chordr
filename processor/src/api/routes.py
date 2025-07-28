@@ -40,7 +40,7 @@ def upload_file():
             'filename': filename,
             'filepath': filepath,
             'original_filename': file.filename,
-            'upload_time': datetime.now(),
+            'upload_time': datetime.now().isoformat(),
             'status': 'uploaded',
             'file_size': os.path.getsize(filepath)
         }    

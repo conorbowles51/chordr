@@ -1,6 +1,11 @@
 # Ignore virtual environment
 venv/
 
+# temp files
+output/
+uploads/
+jobs.json
+
 # Ignore Python cache
 __pycache__/
 *.py[cod]

@@ -1,6 +1,7 @@
 import json
 import os
 import threading
+from datetime import datetime
 
 class TaskManager:
     def __init__(self):
@@ -34,3 +35,11 @@ class TaskManager:
 
     def get_job(self, job_id):
         return self.jobs.get(job_id)
+    
+    def update_job_status(self, job_id, status):
+        with self.lock:
+            if job_id in self.jobs:
+                self.jobs[job_id]['status'] = status
+                self.jobs[job_id]['updated_at'] = datetime.now().isoformat()
+
+            self._save_jobs()

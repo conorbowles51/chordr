@@ -61,9 +61,27 @@ def upload_file():
 
 @api_bp.route('/process/<job_id>', methods=['POST'])
 def process_audio(job_id):
-    return jsonify({
-        "message": "process"
-    })
+    try:
+        job_data = task_manager.get_job(job_id)
+        if not job_data:
+            return jsonify({ 'error': 'Job not found' }), 404
+        
+        if job_data['status'] != "uploaded":
+            return jsonify({ 'error': f'Job status is {job_data["status"]}, cannot process' }), 400
+        
+        task_manager.update_job_status(job_id, 'processing')
+
+        # TODO: Process audio async here
+
+        return jsonify({
+            'job_id': job_id,
+            'message': 'Audio processing started',
+            'status': 'processing'
+        }), 202
+
+    except Exception as e:
+        current_app.logger.error(f"Processing error: {str(e)}")
+        return jsonify({'error': 'Processing failed to start'}), 500
 
 @api_bp.route('/status/<job_id>', methods=['GET'])
 def get_status(job_id):
